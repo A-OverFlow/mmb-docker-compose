@@ -101,7 +101,7 @@ services :
     restart: unless-stopped
     depends_on:
       - member-service
-    command: [ "java", "-jar", "application.jar", "--spring.profiles.active=dev" ]
+    command: [ "java", "-jar", "application.jar", "--spring.profiles.active=${APIGATEWAY_PROFILE}" ]
     ports:
       - 443:8443
     environment:
