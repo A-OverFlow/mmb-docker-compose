@@ -103,7 +103,7 @@ services :
       - member-service
     command: [ "java", "-jar", "application.jar", "--spring.profiles.active=${APIGATEWAY_PROFILE}" ]
     ports:
-      - 443:8443
+      - "${APPLICATION_PORT}:${APPLICATION_PORT}"
     environment:
       - APPLICATION_PORT=${APPLICATION_PORT}
     volumes:
