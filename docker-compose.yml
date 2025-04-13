@@ -50,7 +50,7 @@ services :
     container_name: member-service
     restart: unless-stopped
     depends_on:
-      - mysql
+      - mysql-member
       - redis
     ports:
       - "${MEMBER_SERVICE_PORT}:${MEMBER_SERVICE_PORT}"
@@ -73,12 +73,34 @@ services :
       - be-net
       - db-net
 
+  auth-service:
+    image: mumulbo/auth-service:${ENV_PROFILE}
+    container_name: auth-service
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - member-service
+      - mysql-member
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+    command:
+      - java -jar /app/auth-service.jar
+    environment:
+      APPLICATION_PORT: ${AUTH_SERVICE_PORT}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_PORT: ${REDIS_PORT}
+      SECRET_KEY: ${SECRET_KEY}
+    networks:
+      - fe-net
+      - be-net
+      - db-net
+
   question-service:
     image: mumulbo/question-service:${ENV_PROFILE}
     container_name: question-service
     restart: unless-stopped
     depends_on:
-      - mysql
+      - mysql-question
       - redis
       - member-service
     ports:
