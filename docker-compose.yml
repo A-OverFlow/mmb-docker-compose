@@ -46,7 +46,7 @@ services :
       - db-net
 
   member-service:
-    image: myeongseob91/member-service:dev
+    image: mumulbo/member-service:dev
     container_name: member-service
     restart: unless-stopped
     depends_on:
@@ -74,7 +74,7 @@ services :
       - db-net
 
   question-service:
-    image: myeongseob91/question-service:dev
+    image: mumulbo/question-service:dev
     container_name: question-service
     restart: unless-stopped
     depends_on:
@@ -96,7 +96,7 @@ services :
       - db-net
 
   gateway:
-    image: myeongseob91/mmb-apigateway:latest
+    image: mumulbo/mmb-apigateway:latest
     container_name: mmb-apigateway
     restart: unless-stopped
     depends_on:
@@ -113,7 +113,7 @@ services :
       - mgt-net
 
   mmb-frontend:
-    image: myeongseob91/mmb-frontend:latest
+    image: mumulbo/mmb-frontend:latest
     container_name: mmb-frontend
     restart: unless-stopped
     depends_on:
