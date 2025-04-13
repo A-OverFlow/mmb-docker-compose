@@ -46,7 +46,7 @@ services :
       - db-net
 
   member-service:
-    image: mumulbo/member-service:dev
+    image: mumulbo/member-service:${ENV_PROFILE}
     container_name: member-service
     restart: unless-stopped
     depends_on:
@@ -74,7 +74,7 @@ services :
       - db-net
 
   question-service:
-    image: mumulbo/question-service:dev
+    image: mumulbo/question-service:${ENV_PROFILE}
     container_name: question-service
     restart: unless-stopped
     depends_on:
@@ -101,7 +101,7 @@ services :
     restart: unless-stopped
     depends_on:
       - member-service
-    command: [ "java", "-jar", "application.jar", "--spring.profiles.active=${APIGATEWAY_PROFILE}" ]
+    command: [ "java", "-jar", "application.jar", "--spring.profiles.active=${ENV_PROFILE}" ]
     ports:
       - "${APPLICATION_PORT}:${APPLICATION_PORT}"
     environment:
