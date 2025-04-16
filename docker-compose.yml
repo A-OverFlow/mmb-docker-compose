@@ -20,6 +20,7 @@ services :
     restart: no
     environment:
       MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_DATABASE: aoverflow
       TZ: Asia/Seoul
     ports:
       - 3306:3306
@@ -50,8 +51,8 @@ services :
     container_name: mmb-member-service
     restart: no
     depends_on:
-      - mysql-member
-      - redis
+      - mmb-member-mysql
+      - mmb-redis
     ports:
       - "${MEMBER_SERVICE_PORT}:${MEMBER_SERVICE_PORT}"
     command:
@@ -59,7 +60,7 @@ services :
     environment:
       APPLICATION_NAME: ${APPLICATION_NAME}
       APPLICATION_PORT: ${MEMBER_SERVICE_PORT}
-      DATASOURCE_URL: ${DATASOURCE_URL}
+      DATASOURCE_URL: ${MEMBER_DATASOURCE_URL}
       DATASOURCE_USERNAME: ${DATASOURCE_USERNAME}
       DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
       REDIS_URL: ${REDIS_URL}
@@ -68,62 +69,73 @@ services :
       REFRESH_TOKEN_EXPIRATION: ${REFRESH_TOKEN_EXPIRATION}
       ACCESS_TOKEN_EXPIRATION: ${ACCESS_TOKEN_EXPIRATION}
       spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.MySQLDialect
-      spring.jpa.hibernate.ddl-auto: create
+      #spring.jpa.hibernate.ddl-auto: create
     networks:
       - fe-net
       - be-net
       - db-net
 
   mmb-auth-service:
-      image: mumulbo/auth-service:${ENV_PROFILE}
-      container_name: mmb-auth-service
-      restart: no
-      depends_on:
-        - redis
-        - member-service
-        - mysql-member
-      ports:
-        - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
-      command:
-        - java -jar /app/auth-service.jar
-      environment:
-        APPLICATION_PORT: ${AUTH_SERVICE_PORT}
-        REDIS_URL: ${REDIS_URL}
-        REDIS_PORT: ${REDIS_PORT}
-        SECRET_KEY: ${SECRET_KEY}
-      networks:
-        - fe-net
-        - be-net
-        - db-net
+    image: mumulbo/auth-service:${ENV_PROFILE}
+    container_name: mmb-auth-service
+    restart: no
+    depends_on:
+      - mmb-redis
+      - mmb-member-service
+      - mmb-member-mysql
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+    command:
+      - java -jar /app/auth-service.jar
+    environment:
+      AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT}
+      AUTH_SERVICE_NAME: ${AUTH_SERVICE_NAME}
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      MEMBER_SERVICE_HOST: ${MEMBER_SERVICE_HOST}
+      MEMBER_SERVICE_PORT: ${MEMBER_SERVICE_PORT}
+      ACCESS_TOKEN_EXPIRATION: ${ACCESS_TOKEN_EXPIRATION}
+      REFRESH_TOKEN_EXPIRATION: ${REFRESH_TOKEN_EXPIRATION}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_PORT: ${REDIS_PORT}
+      SECRET_KEY: ${SECRET_KEY}
+    networks:
+      - fe-net
+      - be-net
+      - db-net
 
   mmb-question-service:
-      image: mumulbo/question-service:${ENV_PROFILE}
-      container_name: mmb-question-service
-      restart: no
-      depends_on:
-        - mysql-question
-        - redis
-        - member-service
-      ports:
-        - "${QUESTION_SERVICE_PORT}:${QUESTION_SERVICE_PORT}"
-      environment:
-        APPLICATION_PORT: ${QUESTION_SERVICE_PORT}
-        DATASOURCE_URL: ${DATASOURCE_URL}
-        DATASOURCE_USERNAME: ${DATASOURCE_USERNAME}
-        DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
-      command:
-        - java -jar /app/member-service.jar
-      networks:
-        - fe-net
-        - be-net
-        - db-net
+    image: mumulbo/question-service:${ENV_PROFILE}
+    container_name: mmb-question-service
+    restart: no
+    depends_on:
+      - mmb-question-mysql
+      - mmb-redis
+      - mmb-member-service
+    ports:
+      - "${QUESTION_SERVICE_PORT}:${QUESTION_SERVICE_PORT}"
+    environment:
+      QUESTION_SERVICE_PORT: ${QUESTION_SERVICE_PORT}
+      QUESTION_SERVICE_NAME: ${QUESTION_SERVICE_NAME}
+      DATASOURCE_URL: ${QUESTION_DATASOURCE_URL}
+      DATASOURCE_USERNAME: ${DATASOURCE_USERNAME}
+      DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD}
+      spring.datasource.url: jdbc:mysql://172.31.32.196:3306/aoverflow?serverTimezone=Asia/Seoul
+      spring.jpa.properties.hibernate.dialect: org.hibernate.dialect.MySQLDialect
+      #spring.jpa.hibernate.ddl-auto: create
+    command:
+      - java -jar /app/member-service.jar
+    networks:
+      - fe-net
+      - be-net
+      - db-net
 
   mmb-apigateway:
     image: mumulbo/apigateway:${ENV_PROFILE}
     restart: no
     container_name: mmb-apigateway
     depends_on:
-      - member-service
+      - mmb-member-service
     command: [ "java", "-jar", "application.jar", "--spring.profiles.active=${ENV_PROFILE}" ]
     ports:
       - "${APPLICATION_PORT}:${APPLICATION_PORT}"
@@ -132,6 +144,7 @@ services :
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       MEMBER_SERVICE_PORT: ${MEMBER_SERVICE_PORT}
       QUESTION_SERVICE_PORT: ${QUESTION_SERVICE_PORT}
+      AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT}
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
@@ -144,7 +157,7 @@ services :
     container_name: mmb-frontend
     restart: no
     depends_on:
-      - gateway
+      - mmb-apigateway
     ports:
       - "80:80"
     volumes:
@@ -185,8 +198,8 @@ services :
     container_name: mmb-prometheus
     restart: no
     depends_on:
-      - node-exporter
-      - process-exporter
+      - mmb-node-exporter
+      - mmb-process-exporter
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -200,7 +213,7 @@ services :
     container_name: mmb-grafana
     restart: no
     depends_on:
-      - prometheus
+      - mmb-prometheus
     environment:
       - GF_SERVER_ROOT_URL=https://localhost:3000/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
